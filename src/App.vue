@@ -1,89 +1,111 @@
 <script setup>
-  import { ref, computed } from 'vue';
+  import { ref, computed, onMounted } from 'vue';
 
-  const name = 'Vue 3';
+  import ButtonCounter from './components/ButtonCounter.vue';
+  import BlogPost from './components/BlogPost.vue';
+  import PaginatePost from './components/PaginatePost.vue';
+  import LoadingSpinner from './components/LoadingSpinner.vue';
 
-  // método handleClick
-  const handleClick = (message) => {
-    console.log(message);
-    alert(message);
+  const posts = ref([]);
+  const postXpage = 10;
+  const inicio = ref(0);
+  const fin = ref(postXpage);
+  const loading = ref(true);
+
+  const next = () => {
+    inicio.value += postXpage;
+    fin.value += postXpage;
+  };
+  const previous = () => {
+    inicio.value -= postXpage;
+    fin.value -= postXpage;
   };
 
-  const counter = ref(0);
+  const postFavorito = ref('');
 
-  const increment = () => {
-    console.log('first');
-    counter.value++;
+  const cambiarFavorito = (post) => {
+    postFavorito.value = post;
   };
 
-  const classCounter = computed(() => {
-    if (counter.value === 0) {
-      return 'cero';
-    }
-    if (counter.value > 0) {
-      return 'positivo';
-    }
-    if (counter.value < 0) {
-      return 'negativo';
-    }
-  });
+  // Utilizo esta alternativa si mecesito algo del DOM para har algo que dependa de algo del template pe getElementById
 
-  const listaFavoritos = ref([]);
+  // onMounted(async () => {
+  //   try {
+  //     const res = await fetch('https://jsonplaceholder.typicode.com/posts');
+  //     posts.value = await res.json();
+  //   } catch (error) {
+  //     console.log(error);
+  //   } finally {
+  //     setTimeout(() => {
+  //       loading.value = false;
+  //     }, 2000);
+  //   }
+  // });
 
-  const añadirAFavoritos = () => {
-    listaFavoritos.value.push(counter.value);
+  // fetch('https://jsonplaceholder.typicode.com/posts')
+  //   .then((res) => res.json())
+  //   .then((data) => {
+  //     posts.value = data;
+  //   })
+  //   .catch((e)=> console.log(e))
+  //   .finally(() => {
+  //     setTimeout(()=>{
+  //       loading.value = false
+
+  //     },2000 )
+  //   })
+
+  //la mejor alternativa
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch('https://jsonplaceholder.typicode.com/posts');
+      posts.value = await res.json();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setTimeout(() => {
+        loading.value = false;
+      }, 2000);
+    }
   };
 
-  const bloquearAñadirAFavoritos = computed(() => {
-    // let bloquear = false;
-    const numeroAComprobar = listaFavoritos.value.find(
-      (numero) => numero === counter.value
-    );
-    // if (numeroAComprobar || numeroAComprobar===0) bloquear = true;
-    // return numeroAComprobar || numeroAComprobar == 0 ? true : false;
-    return numeroAComprobar || numeroAComprobar == 0;
-  });
+  fetchData()
+
+  const maxLengtC = computed(() => posts.value.length);
 </script>
 
 <template>
-  <!-- <h1>Hola {{ name }}!</h1> -->
+  <LoadingSpinner v-if="loading" />
+  <div class="container" v-else>
+    <h1>APP Vue</h1>
+    <!-- <ButtonCounter />
+    <button-counter /> -->
+    <h2>Mis Posts Favoritos: {{ postFavorito }}</h2>
 
-  <!-- <h2 :class="counter >0 ? 'positivo' : 'negativo'">{{ counter }}</h2> -->
+    <!-- <button @click="next">Next Provisional</button> -->
+    <!-- <button @click="previous">Previous Provisional</button> -->
 
-  <div class="container text-center mt-3">
-    <h2 :class="classCounter">{{ counter }}</h2>
+    <PaginatePost
+      @next="next"
+      @previous="previous"
+      :inicio="inicio"
+      :fin="fin"
+      :maxLength="posts.length"
+      class="mb-2"
+    />
 
-    <!-- <button @click="increment()">Aumentar</button> -->
-    <div class="btn-group">
-      <button @click="counter++" class="btn btn-success">
-        Aumentar con Integración
-      </button>
-      <button @click="counter--" class="btn btn-danger">
-        Disminuir con Integración
-      </button>
-      <button @click="counter = 0" class="btn btn-secondary">
-        Poner a cero
-      </button>
-      <button
-        @click="añadirAFavoritos"
-        :disabled="bloquearAñadirAFavoritos"
-        class="btn btn-primary"
-      >
-        Añadir a favoritos
-      </button>
-    </div>
-    <br /><br />
-    {{ listaFavoritos }}
-
-    <ul class="list-group mt-4">
-      <li
-        class="list-group-item"
-        v-for="(numero, index) in listaFavoritos"
-        :key="index"
-      >
-        {{ numero }}
-      </li>
-    </ul>
+    <BlogPost
+      v-for="post in posts.slice(inicio, fin)"
+      :key="post.id"
+      :title="post.title"
+      :body="post.body"
+      :id="post.id"
+      :colorText="post.colorText"
+      @cambiarFavoritoNombre="cambiarFavorito"
+      class="mb-2"
+    >
+    </BlogPost>
   </div>
 </template>
 
